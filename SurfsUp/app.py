@@ -1,22 +1,26 @@
-# Import the dependencies.
+ # Import the dependencies.
 from flask import Flask, jsonify
-import datetime as dt
-from sqlalchemy import create_engine, func
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import Session
 
+import numpy as np
+import pandas as pd
+import datetime as dt
+
+import sqlalchemy
+from sqlalchemy import create_engine, func
+from sqlalchemy.orm import Session
+from sqlalchemy.ext.automap import automap_base
 #################################################
 # Database Setup
 #################################################
-
 # reflect an existing database into a new model
-engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///hawaii.sqlite")
 Base = automap_base()
 Base.prepare(engine, reflect=True)
 
 # reflect the tables
-Measurement = Base.classes.measurement
+Measurement = Base.classes.Measurement
 Station = Base.classes.station
+session = Session(engine)
 
 #################################################
 # Flask Setup
@@ -29,9 +33,9 @@ app = Flask(__name__)
 #################################################
 # Define the home page route and list of available routes:
 @app.route("/")
-def welcome():
+def home():
     return (
-        f"Welcome to the Hawaii Climate Analysis API!<br/>"
+        f"Welcome to the Climate App!<br/>"
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
@@ -43,55 +47,97 @@ def welcome():
 # Define the /api/v1.0/precipitation route to return the last 12 months of precipitation data as a dictionary:
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    session = Session(engine)
+    # Calculate the date 1 year ago from the last date in the database
+    last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+    last_date = dt.datetime.strptime(last_date[0], '%Y-%m-%d')
+    one_year_ago = last_date - dt.timedelta(days=365)
 
-    last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
-    last_date = dt.datetime.strptime(last_date, '%Y-%m-%d')
-    year_ago = last_date - dt.timedelta(days=365)
+    # Query the last 12 months of precipitation data
+    prcp_results = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= one_year_ago).all()
 
-    results = session.query(Measurement.date, Measurement.prcp).\
-        filter(Measurement.date >= year_ago).\
-        order_by(Measurement.date).all()
+    # Convert the query results to a dictionary using date as the key and prcp as the value.
+    prcp_dict = {}
+    for result in prcp_results:
+        prcp_dict[result[0]] = result[1]
 
-    session.close()
-
-    precipitation = {date: prcp for date, prcp in results}
-
-    return jsonify(precipitation)
+    # Return the JSON representation of your dictionary.
+    return jsonify(prcp_dict)
 
 # Define the /api/v1.0/stations route to return a list of stations:
 @app.route("/api/v1.0/stations")
 def stations():
-    session = Session(engine)
+    # Query the stations
+    station_results = session.query(Station.station, Station.name).all()
 
-    results = session.query(Station.station).all()
+    # Convert the query results to a list of dictionaries
+    station_list = []
+    for result in station_results:
+        station_dict = {}
+        station_dict["station"] = result[0]
+        station_dict["name"] = result[1]
+        station_list.append(station_dict)
 
-    session.close()
-
-    stations = list(np.ravel(results))
-
-    return jsonify(stations)
+    # Return the JSON representation of your list.
+    return jsonify(station_list)
 
 # Define the /api/v1.0/tobs route to return temperature observations for the most active station for the last 12 months:
 @app.route("/api/v1.0/tobs")
 def tobs():
-    session = Session(engine)
+    # Calculate the date 1 year ago from the last date in the database
+    last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+    last_date = dt.datetime.strptime(last_date[0], '%Y-%m-%d')
+    one_year_ago = last_date - dt.timedelta(days=365)
 
-    last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
-    last_date = dt.datetime.strptime(last_date, '%Y-%m-%d')
-    year_ago = last_date - dt.timedelta(days=365)
+    # Query the temperature observations of the most-active station for the previous year of data.
+    station_query = session.query(Measurement.station, func.count(Measurement.station)).\
+        group
 
-    results = session.query(Measurement.date, Measurement.tobs).\
-        filter(Measurement.date >= year_ago).\
-        filter(Measurement.station == 'USC00519281').\
-        order_by(Measurement.date).all()
-
-    session.close()
-
-    temps = list(np.ravel(results))
-
-    return jsonify(temps)
 
 # Define the /api/v1.0/<start> and /api/v1.0/<start>/<end> routes to return temperature statistics for a specified start date or date range:
 @app.route("/api/v1.0/<start>")
-@app.route("/api/v1.0/<end>")
+def temp_stats_start(start):
+    # Convert the start date to datetime object
+    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
+
+    # Query the temperature statistics
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).all()
+
+    # Convert the query results to a list of dictionaries
+    temp_list = []
+    for result in results:
+        temp_dict = {}
+        temp_dict["TMIN"] = result[0]
+        temp_dict["TAVG"] = result[1]
+        temp_dict["TMAX"] = result[2]
+        temp_list.append(temp_dict)
+
+    # Return the JSON representation of your list.
+    return jsonify(temp_list)
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def temp_stats_start_end(start, end):
+    # Convert the start and end dates to datetime objects
+    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
+    end_date = dt.datetime.strptime(end, '%Y-%m-%d')
+
+    # Query the temperature statistics
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
+
+    # Convert the query results to a list of dictionaries
+    temp_list = []
+    for result in results:
+        temp_dict = {}
+        temp_dict["TMIN"] = result[0]
+        temp_dict["TAVG"] = result[1]
+        temp_dict["TMAX"] = result[2]
+        temp_list.append(temp_dict)
+
+    # Return the JSON representation of your list.
+    return jsonify(temp_list)
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
