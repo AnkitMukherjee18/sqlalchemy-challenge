@@ -1,16 +1,3 @@
-<<<<<<< Updated upstream
- # Import the dependencies.
-from flask import Flask, jsonify
-
-import numpy as np
-import pandas as pd
-import datetime as dt
-
-import sqlalchemy
-from sqlalchemy import create_engine, func
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.automap import automap_base
-=======
 # Import the dependencies.
 import numpy as np
 import datetime as dt
@@ -21,28 +8,19 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 
 from flask import Flask, jsonify
->>>>>>> Stashed changes
+
 #################################################
 # Database Setup
 #################################################
 # reflect an existing database into a new model
-<<<<<<< Updated upstream
-engine = create_engine("sqlite:///hawaii.sqlite")
-=======
 engine = create_engine("sqlite:///Resources/hawaii.sqlite")
->>>>>>> Stashed changes
 Base = automap_base()
 Base.prepare(engine, reflect=True)
 
 # reflect the tables
-<<<<<<< Updated upstream
 Measurement = Base.classes.Measurement
 Station = Base.classes.station
 session = Session(engine)
-=======
-Measurement = Base.classes.measurement
-Station = Base.classes.station
->>>>>>> Stashed changes
 
 #################################################
 # Flask Setup
@@ -55,15 +33,9 @@ app = Flask(__name__)
 #################################################
 # Define the home page route and list of available routes:
 @app.route("/")
-<<<<<<< Updated upstream
 def home():
     return (
         f"Welcome to the Climate App!<br/>"
-=======
-def welcome():
-    return (
-        f"Welcome to the Hawaii Climate Analysis API!<br/>"
->>>>>>> Stashed changes
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
@@ -75,7 +47,6 @@ def welcome():
 # Define the /api/v1.0/precipitation route to return the last 12 months of precipitation data as a dictionary:
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-<<<<<<< Updated upstream
     # Calculate the date 1 year ago from the last date in the database
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
     last_date = dt.datetime.strptime(last_date[0], '%Y-%m-%d')
@@ -91,7 +62,6 @@ def precipitation():
 
     # Return the JSON representation of your dictionary.
     return jsonify(prcp_dict)
-=======
     session = Session(engine)
 
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
@@ -107,12 +77,10 @@ def precipitation():
     precipitation = {date: prcp for date, prcp in results}
 
     return jsonify(precipitation)
->>>>>>> Stashed changes
 
 # Define the /api/v1.0/stations route to return a list of stations:
 @app.route("/api/v1.0/stations")
 def stations():
-<<<<<<< Updated upstream
     # Query the stations
     station_results = session.query(Station.station, Station.name).all()
 
@@ -126,7 +94,6 @@ def stations():
 
     # Return the JSON representation of your list.
     return jsonify(station_list)
-=======
     session = Session(engine)
 
     results = session.query(Station.station).all()
@@ -136,12 +103,10 @@ def stations():
     stations = list(np.ravel(results))
 
     return jsonify(stations)
->>>>>>> Stashed changes
 
 # Define the /api/v1.0/tobs route to return temperature observations for the most active station for the last 12 months:
 @app.route("/api/v1.0/tobs")
 def tobs():
-<<<<<<< Updated upstream
     # Calculate the date 1 year ago from the last date in the database
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
     last_date = dt.datetime.strptime(last_date[0], '%Y-%m-%d')
@@ -150,7 +115,6 @@ def tobs():
     # Query the temperature observations of the most-active station for the previous year of data.
     station_query = session.query(Measurement.station, func.count(Measurement.station)).\
         group
-=======
     session = Session(engine)
 
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
@@ -167,59 +131,10 @@ def tobs():
     temps = list(np.ravel(results))
 
     return jsonify(temps)
->>>>>>> Stashed changes
 
 
 # Define the /api/v1.0/<start> and /api/v1.0/<start>/<end> routes to return temperature statistics for a specified start date or date range:
 @app.route("/api/v1.0/<start>")
-<<<<<<< Updated upstream
-def temp_stats_start(start):
-    # Convert the start date to datetime object
-    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
-
-    # Query the temperature statistics
-    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-        filter(Measurement.date >= start_date).all()
-
-    # Convert the query results to a list of dictionaries
-    temp_list = []
-    for result in results:
-        temp_dict = {}
-        temp_dict["TMIN"] = result[0]
-        temp_dict["TAVG"] = result[1]
-        temp_dict["TMAX"] = result[2]
-        temp_list.append(temp_dict)
-
-    # Return the JSON representation of your list.
-    return jsonify(temp_list)
-
-
-@app.route("/api/v1.0/<start>/<end>")
-def temp_stats_start_end(start, end):
-    # Convert the start and end dates to datetime objects
-    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
-    end_date = dt.datetime.strptime(end, '%Y-%m-%d')
-
-    # Query the temperature statistics
-    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-        filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
-
-    # Convert the query results to a list of dictionaries
-    temp_list = []
-    for result in results:
-        temp_dict = {}
-        temp_dict["TMIN"] = result[0]
-        temp_dict["TAVG"] = result[1]
-        temp_dict["TMAX"] = result[2]
-        temp_list.append(temp_dict)
-
-    # Return the JSON representation of your list.
-    return jsonify(temp_list)
-
-# Run the app
-if __name__ == '__main__':
-    app.run(debug=True)
-=======
 @app.route("/api/v1.0/<start>/<end>")
 def stats(start=None, end=None):
     session = Session(engine)
@@ -259,4 +174,5 @@ def stats(start=None, end=None):
 
     return jsonify(stats)
 
->>>>>>> Stashed changes
+if __name__ == '__main__':
+    app.run()
