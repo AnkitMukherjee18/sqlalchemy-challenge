@@ -13,12 +13,13 @@ from flask import Flask, jsonify
 # Database Setup
 #################################################
 # reflect an existing database into a new model
-engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///SurfsUp/Resources/hawaii.sqlite")
+#engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 Base = automap_base()
-Base.prepare(engine, reflect=True)
+Base.prepare(autoload_with=engine)
 
 # reflect the tables
-Measurement = Base.classes.Measurement
+Measurement = Base.classes.measurement
 Station = Base.classes.station
 session = Session(engine)
 
@@ -94,15 +95,15 @@ def stations():
 
     # Return the JSON representation of your list.
     return jsonify(station_list)
-    session = Session(engine)
+    #session = Session(engine)
 
-    results = session.query(Station.station).all()
+    #results = session.query(Station.station).all()
 
-    session.close()
+    #session.close()
 
-    stations = list(np.ravel(results))
+    #stations = list(np.ravel(results))
 
-    return jsonify(stations)
+    #return jsonify(stations)
 
 # Define the /api/v1.0/tobs route to return temperature observations for the most active station for the last 12 months:
 @app.route("/api/v1.0/tobs")
@@ -115,7 +116,7 @@ def tobs():
     # Query the temperature observations of the most-active station for the previous year of data.
     station_query = session.query(Measurement.station, func.count(Measurement.station)).\
         group
-    session = Session(engine)
+    #session = Session(engine)
 
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
     last_date = dt.datetime.strptime(last_date, '%Y-%m-%d')
@@ -137,7 +138,7 @@ def tobs():
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
 def stats(start=None, end=None):
-    session = Session(engine)
+    #session = Session(engine)
 
     if end:
         # If an end date is provided, calculate the temperature statistics for the specified date range
